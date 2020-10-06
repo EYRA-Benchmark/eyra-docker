@@ -1,0 +1,6 @@
+{$SITE_ADDRESS}
+
+reverse_proxy /api/* eyra-backend:8000
+
+reverse_proxy /* eyra-frontend:80
+
