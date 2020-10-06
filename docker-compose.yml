@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+  eyra-postgres:
+    container_name: eyra-postgres
+    hostname: eyra-postgres
+    image: bitnami/postgresql:latest
+    volumes:
+      - eyra-postgres-data:/var/lib/postgresql/data
+
+    environment:
+      - POSTGRESQL_DATABASE=comic
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  eyra-backend:
+    image: eyra/comic:latest
+    #build: .    // uncomment this to run the dockerfile with wait script to load data from db.json
+    container_name: eyra-backend
+    env_file: [./.env.aws]
+    environment:
+      - POSTGRESQL_DATABASE=comic
+      - POSTGRESQL_HOST=eyra-postgres
+      - POSTGRESQL_PORT=5432
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - CORS_ALLOW_ALL=true
+      - ALLOW_ALL_HOSTS=true
+    hostname: eyra-backend
+    restart: always
+    links:
+      - eyra-postgres
+    volumes:
+      - .:/mydata
+
+  eyra-frontend:
+    image: eyra/frontend:1021
+    container_name: eyra-frontend
+    environment:
+      - EYRA_BACKEND_URL=https://eyrabenchmark.net/api/v1/
+    links:
+      - eyra-backend
+  caddy:
+    image: caddy:2.1.1-alpine
+    restart: unless-stopped
+    environment:
+      - SITE_ADDRESS=eyrabenchmark.net
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - $PWD/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    links:
+      - eyra-backend
+      - eyra-frontend
+
+volumes:
+  eyra-postgres-data:
+  caddy_data:
+  caddy_config:
